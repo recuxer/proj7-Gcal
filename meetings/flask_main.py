@@ -52,7 +52,7 @@ def index():
     init_session_values()
   return render_template('index.html')
 
-@app.route("/choose")
+@app.route("/choose", methods=['POST', 'GET'])
 def choose():
     ## We'll need authorization to list calendars 
     ## I wanted to put what follows into a function, but had
@@ -63,10 +63,23 @@ def choose():
     if not credentials:
       app.logger.debug("Redirecting to authorization")
       return flask.redirect(flask.url_for('oauth2callback'))
-
+    #get calendars before method check to use cal summary
     gcal_service = get_gcal_service(credentials)
     app.logger.debug("Returned from get_gcal_service")
     flask.g.calendars = list_calendars(gcal_service)
+    #request is from submission of selected calendars
+    if request.method == 'POST':
+        calsummary = []
+        calendarids = request.form.getlist('calendar')
+            
+        for ids in calendarids:
+            for calendars in flask.g.calendars:
+                if ids in calendars['id']:
+                    calsummary.append(calendars['summary'])
+        #print (calsummary)
+        events = getEvents(calendarids, calsummary, credentials, gcal_service)
+        flask.g.events = events
+    
     return render_template('index.html')
 
 @app.route("/eventlist", methods=["POST"])
@@ -74,19 +87,21 @@ def eventlist():
     calendarid = request.form.getlist("calendar")
     print(calendarid)
     events = getEvents(calendarid)
-    return flask.redirect(flask.url_for('index'))
+    flask.g.events = events
+    return flask.redirect(flask.url_for('choose'))
+    #return render_template('index.html')
 
 ###
 # get events
 ###
-def getEvents(calid):
-    credentials = valid_credentials()
-    gcalservice = get_gcal_service(credentials)
+def getEvents(calid, calsum, credentials, service):
+    #credentials = valid_credentials()
+    #gcalservice = get_gcal_service(credentials)
     eventsbycalendar = {}
-    for ids in calid:
-        events = gcalservice.events().list(calendarId=ids).execute()
+    for count, ids in enumerate(calid):
+        events = service.events().list(calendarId=ids).execute()
         eventlist = []
-        #print(events)
+        print(events)
         for event in events['items']:
             if 'transparency' not in event:
                 starttime = event['start']
@@ -97,8 +112,8 @@ def getEvents(calid):
                 #print(event['start'])
                 #print(event['end'])
                 #print(eventlist)
-        eventsbycalendar[ids] = eventlist
-        print(eventsbycalendar)
+        eventsbycalendar[calsum[count]] = eventlist
+        #print(eventsbycalendar)
     return eventsbycalendar
     
 

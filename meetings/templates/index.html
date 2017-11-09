@@ -79,7 +79,7 @@
     });
   </script>
 
-<br /><input type="submit" value="Show Calendars" />
+<br /><input type="submit" value="Choose date" />
 </form>
 
     <!--
@@ -89,21 +89,42 @@
     prefer down then across). 
     -->
 <!-- create form to pass into /choose -->
-    {% if g.calendars is defined  %}
+    {% if g.calendars is defined and g.events is not defined %}
     <br /><p>Choose calendars to apply date to:</p>
-      <form id="calchoose" method="POST" action="/eventlist">
-        <button type=submit name="calchoose">Choose</button>
+      <form id="calchoose" method="POST" action="/choose">
+        <button type=submit name="calchoose">Select Calendars</button>
       <div class="col-md-4">
       {% for cal in g.calendars if cal.selected %}
           <div class="row">
 	  <input type="checkbox" name="calendar" value="{{cal.id}}">
-          {{ cal.summary }}
+            {{ cal.summary }}
           </div>
          {% if loop.index is divisibleby 3 %}
           </div> <div class="col-md-4">
          {% endif %}
   {% endfor %}
   </div>
+{% endif %}
+
+<!-- outputting eventlist of each calendar -->
+{% if g.events is defined %}
+  {% for calsum, eventlist in g.events.items() %}
+    <div class="row">
+      <div class="col-md-3">
+        {{ calsum }}
+      </div><div class="col-md-8">
+        <div class="row">
+         {% for start, end, summary in eventlist %}
+           {{ start | fmtdate }} {{ start | fmttime}} 
+           {{ end | fmtdate }} {{ end | fmttime}} 
+           {{ summary }}
+           <br />
+         {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+       <p>events is defined homeboy</p>
 {% endif %}
 </form>
 
