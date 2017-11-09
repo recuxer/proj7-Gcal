@@ -69,6 +69,39 @@ def choose():
     flask.g.calendars = list_calendars(gcal_service)
     return render_template('index.html')
 
+@app.route("/eventlist", methods=["POST"])
+def eventlist():
+    calendarid = request.form.getlist("calendar")
+    print(calendarid)
+    events = getEvents(calendarid)
+    return flask.redirect(flask.url_for('index'))
+
+###
+# get events
+###
+def getEvents(calid):
+    credentials = valid_credentials()
+    gcalservice = get_gcal_service(credentials)
+    eventsbycalendar = {}
+    for ids in calid:
+        events = gcalservice.events().list(calendarId=ids).execute()
+        eventlist = []
+        #print(events)
+        for event in events['items']:
+            if 'transparency' not in event:
+                starttime = event['start']
+                endtime = event['end']
+                #might need to eventually change into arrow objects or iso strings
+                eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
+                eventlist.append(eventinfo)
+                #print(event['start'])
+                #print(event['end'])
+                #print(eventlist)
+        eventsbycalendar[ids] = eventlist
+        print(eventsbycalendar)
+    return eventsbycalendar
+    
+
 ####
 #
 #  Google calendar authorization:

@@ -35,12 +35,12 @@
 <body>
 <div class="container">
 
-<h1>Busy times</h1>
+<h1>Calendar Event times</h1><br>
 
 <!--
-  -- If there are any warnings or other messages from a prior action,
-  -- they appear above the rest of the content, just until the next 
-  -- action.
+   If there are any warnings or other messages from a prior action,
+   they appear above the rest of the content, just until the next 
+   action.
   -->
 
 {% with messages = get_flashed_messages() %}
@@ -79,7 +79,7 @@
     });
   </script>
 
-<br /><input type="submit" value="Choose" />
+<br /><input type="submit" value="Show Calendars" />
 </form>
 
     <!--
@@ -88,19 +88,24 @@
     shown in each row (but the order is across then down; I would
     prefer down then across). 
     -->
-{% if g.calendars is defined  %}
-  <div class="row">
-  {% for cal in g.calendars if cal.selected %}
-          <div class="col-md-4">
-	   {{ cal.summary }}
+<!-- create form to pass into /choose -->
+    {% if g.calendars is defined  %}
+    <br /><p>Choose calendars to apply date to:</p>
+      <form id="calchoose" method="POST" action="/eventlist">
+        <button type=submit name="calchoose">Choose</button>
+      <div class="col-md-4">
+      {% for cal in g.calendars if cal.selected %}
+          <div class="row">
+	  <input type="checkbox" name="calendar" value="{{cal.id}}">
+          {{ cal.summary }}
           </div>
          {% if loop.index is divisibleby 3 %}
-          </div> <div class="row">
+          </div> <div class="col-md-4">
          {% endif %}
   {% endfor %}
   </div>
 {% endif %}
-    
+</form>
 
   </div>  <!-- container (for bootstrap) -->
   </body> </html>
