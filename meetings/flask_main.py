@@ -67,6 +67,7 @@ def choose():
     gcal_service = get_gcal_service(credentials)
     app.logger.debug("Returned from get_gcal_service")
     flask.g.calendars = list_calendars(gcal_service)
+
     #request is from submission of selected calendars
     if request.method == 'POST':
         calsummary = []
@@ -76,7 +77,6 @@ def choose():
             for calendars in flask.g.calendars:
                 if ids in calendars['id']:
                     calsummary.append(calendars['summary'])
-        #print (calsummary)
         events = getEvents(calendarids, calsummary, credentials, gcal_service)
         flask.g.events = events
     
@@ -85,11 +85,10 @@ def choose():
 @app.route("/eventlist", methods=["POST"])
 def eventlist():
     calendarid = request.form.getlist("calendar")
-    print(calendarid)
+    #print(calendarid)
     events = getEvents(calendarid)
     flask.g.events = events
     return flask.redirect(flask.url_for('choose'))
-    #return render_template('index.html')
 
 ###
 # get events
@@ -99,15 +98,21 @@ def getEvents(calid, calsum, credentials, service):
     #gcalservice = get_gcal_service(credentials)
     eventsbycalendar = {}
     for count, ids in enumerate(calid):
-        events = service.events().list(calendarId=ids).execute()
+        events = service.events().list(calendarId=ids,
+                                       singleEvents=True,
+                                       orderBy='startTime',
+                                       timeMin=flask.session['begin_date'],
+                                       timeMax=flask.session['end_date']).execute()
         eventlist = []
-        print(events)
         for event in events['items']:
             if 'transparency' not in event:
                 starttime = event['start']
                 endtime = event['end']
                 #might need to eventually change into arrow objects or iso strings
+                #eventobj = eventclass(starttime['dateTime'], endtime['dateTime'], event['summary'])
                 eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
+                #print(eventobj.start, eventobj.end, eventobj.summ)
+                #print (eventinfo)
                 eventlist.append(eventinfo)
                 #print(event['start'])
                 #print(event['end'])
@@ -115,7 +120,6 @@ def getEvents(calid, calsum, credentials, service):
         eventsbycalendar[calsum[count]] = eventlist
         #print(eventsbycalendar)
     return eventsbycalendar
-    
 
 ####
 #
@@ -393,7 +397,7 @@ def cal_sort_key( cal ):
 def format_arrow_date( date ):
     try: 
         normal = arrow.get( date )
-        return normal.format("ddd MM/DD/YYYY")
+        return normal.format("ddd MM/DD")
     except:
         return "(bad date)"
 

@@ -108,23 +108,24 @@
 
 <!-- outputting eventlist of each calendar -->
 {% if g.events is defined %}
+  <div class="row">
   {% for calsum, eventlist in g.events.items() %}
-    <div class="row">
-      <div class="col-md-3">
+    <div class="col-md-4">
+      <div class="row">
         {{ calsum }}
-      </div><div class="col-md-8">
-        <div class="row">
-         {% for start, end, summary in eventlist %}
-           {{ start | fmtdate }} {{ start | fmttime}} 
-           {{ end | fmtdate }} {{ end | fmttime}} 
-           {{ summary }}
-           <br />
-         {% endfor %}
-        </div>
       </div>
-    </div>
+       <!--<div class="row">-->
+          {% for start, end, summary in eventlist %}
+            <div class="row" style="border-style: solid;">
+           event: {{ summary }}<br />
+           from: {{ start | fmtdate }} {{ start | fmttime}}<br />
+           to: {{ end | fmtdate }} {{ end | fmttime}} 
+           <br />
+           </div>
+          {% endfor %}
+        </div>
   {% endfor %}
-       <p>events is defined homeboy</p>
+    </div>
 {% endif %}
 </form>
 
