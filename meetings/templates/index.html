@@ -3,45 +3,25 @@
 <title>Appointments</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link rel="stylesheet" type="text/css"
-     href="//cdn.jsdelivr.net/bootstrap/latest/css/bootstrap.css"
-/>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap/latest/css/bootstrap.css"/>
 
-
-<link rel="stylesheet" type="text/css"
-    href="/static/css/busy.css"
-/>
+<link rel="stylesheet" type="text/css" href="/static/css/busy.css"/>
 
 <!-- jquery from a content distribution network; probably cached -->
-<script type="text/javascript"
-     src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js">
 </script>
-
-<!-- Ideally the rest of our javascript dependencies would be
-     bundled and minified with 'browserify', but I've found that
-     it difficult to handle browserify dependencies for class
-     projects.  So, we'll pick up moment and a date range picker
-     from CDNs instead.
--->
 
 <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 
 <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
 <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
 
-
 </head>
-
 <body>
+
 <div class="container">
-
-<h1>Calendar Event times</h1><br>
-
-<!--
-   If there are any warnings or other messages from a prior action,
-   they appear above the rest of the content, just until the next 
-   action.
-  -->
+<h1>Calendar Event times</h1>
+<p> Select range, then calendars you wish to list events of, then range again, and so on forever and ever.</p><br />
 
 {% with messages = get_flashed_messages() %}
   {% if messages %}
@@ -78,46 +58,57 @@
        );
     });
   </script>
-
-<br /><input type="submit" value="Choose date" />
+<br /><input type="submit" value="Select Range" />
 </form>
 
-    <!--
-    Show the calendar list (if we have it).  This will need to be turned into
-    a form from which calendars can be picked. Up to three entries are
-    shown in each row (but the order is across then down; I would
-    prefer down then across). 
-    -->
 <!-- create form to pass into /choose -->
-    {% if g.calendars is defined and g.events is not defined %}
-    <br /><p>Choose calendars to apply date to:</p>
-      <form id="calchoose" method="POST" action="/choose">
-        <button type=submit name="calchoose">Select Calendars</button>
-      <div class="col-md-4">
+{% if g.calendars is defined and g.events is not defined %}
+  <br /><h3>Choose calendars to display events between dates chosen:</h3>
+  <form id="calchoose" method="POST" action="/choose">
       {% for cal in g.calendars if cal.selected %}
-          <div class="row">
-	  <input type="checkbox" name="calendar" value="{{cal.id}}">
+        <div class="row">
+          <div class="col-md-7">
+            <input type="checkbox" class="checkboxes" name="calendar" value="{{cal.id}}">
             {{ cal.summary }}
           </div>
-         {% if loop.index is divisibleby 3 %}
-          </div> <div class="col-md-4">
-         {% endif %}
-  {% endfor %}
-  </div>
+        </div>
+      {% endfor %}
+      <div class="row">
+        <div class="col-md-7">
+          <label><input type="checkbox" name="checkall" id="checkall">Check all Calendars</label>
+          <script>
+          $(document).ready(function(){
+              $("#checkall").click(function(){
+                  if(this.checked){
+                      $('.checkboxes').each(function(){
+                          this.checked = true;
+                      })
+                  }
+                  else {
+                      $('.checkboxes').each(function(){
+                          this.checked = false;
+                       })
+                  }
+              });
+          });
+          </script>
+        </div>
+      </div>
+  <button type=submit name="calchoose">Select Calendars</button>
+  </form>
 {% endif %}
 
 <!-- outputting eventlist of each calendar -->
 {% if g.events is defined %}
   <div class="row">
   {% for calsum, eventlist in g.events.items() %}
-    <div class="col-md-4">
-      <div class="row">
+    <div class="col-md-2">
+      <div class="row" style="border-style: solid">
         {{ calsum }}
       </div>
-       <!--<div class="row">-->
           {% for start, end, summary in eventlist %}
-            <div class="row" style="border-style: solid;">
-           event: {{ summary }}<br />
+            <div class="row" style="border-style: dashed; border-width: 1px;">
+           {{ summary }}<br />
            from: {{ start | fmtdate }} {{ start | fmttime}}<br />
            to: {{ end | fmtdate }} {{ end | fmttime}} 
            <br />
@@ -127,7 +118,6 @@
   {% endfor %}
     </div>
 {% endif %}
-</form>
 
   </div>  <!-- container (for bootstrap) -->
   </body> </html>

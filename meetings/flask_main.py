@@ -1,22 +1,21 @@
+"""
+main file for flask server
+"""
 import flask
 from flask import render_template
 from flask import request
 from flask import url_for
 import uuid
-
 import json
 import logging
-
 # Date handling 
-import arrow # Replacement for datetime, based on moment.js
-# import datetime # But we still need time
-from dateutil import tz  # For interpreting local times
-
-
+import arrow
+# for interpreting local times
+from dateutil import tz
 # OAuth2  - Google library implementation for convenience
 from oauth2client import client
-import httplib2   # used in oauth2 flow
-
+# used in oauth2 flow
+import httplib2
 # Google API for services 
 from apiclient import discovery
 
@@ -39,9 +38,7 @@ CLIENT_SECRET_FILE = CONFIG.GOOGLE_KEY_FILE  ## You'll need this
 APPLICATION_NAME = 'MeetMe class project'
 
 #############################
-#
 #  Pages (routed from URLs)
-#
 #############################
 
 @app.route("/")
@@ -52,17 +49,18 @@ def index():
     init_session_values()
   return render_template('index.html')
 
+#######
+# huge choose route that deals constantly with valid credentials
+#   and auth routing. all input to webpage goes through here and
+#   if request method is post, grab eventlist.
 @app.route("/choose", methods=['POST', 'GET'])
 def choose():
-    ## We'll need authorization to list calendars 
-    ## I wanted to put what follows into a function, but had
-    ## to pull it back here because the redirect has to be a
-    ## 'return' 
     app.logger.debug("Checking credentials for Google calendar access")
     credentials = valid_credentials()
     if not credentials:
       app.logger.debug("Redirecting to authorization")
       return flask.redirect(flask.url_for('oauth2callback'))
+    
     #get calendars before method check to use cal summary
     gcal_service = get_gcal_service(credentials)
     app.logger.debug("Returned from get_gcal_service")
@@ -82,20 +80,10 @@ def choose():
     
     return render_template('index.html')
 
-@app.route("/eventlist", methods=["POST"])
-def eventlist():
-    calendarid = request.form.getlist("calendar")
-    #print(calendarid)
-    events = getEvents(calendarid)
-    flask.g.events = events
-    return flask.redirect(flask.url_for('choose'))
-
 ###
 # get events
 ###
 def getEvents(calid, calsum, credentials, service):
-    #credentials = valid_credentials()
-    #gcalservice = get_gcal_service(credentials)
     eventsbycalendar = {}
     for count, ids in enumerate(calid):
         events = service.events().list(calendarId=ids,
@@ -108,83 +96,40 @@ def getEvents(calid, calsum, credentials, service):
             if 'transparency' not in event:
                 starttime = event['start']
                 endtime = event['end']
-                #might need to eventually change into arrow objects or iso strings
-                #eventobj = eventclass(starttime['dateTime'], endtime['dateTime'], event['summary'])
                 eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
-                #print(eventobj.start, eventobj.end, eventobj.summ)
-                #print (eventinfo)
                 eventlist.append(eventinfo)
-                #print(event['start'])
-                #print(event['end'])
-                #print(eventlist)
         eventsbycalendar[calsum[count]] = eventlist
-        #print(eventsbycalendar)
     return eventsbycalendar
 
-####
-#
-#  Google calendar authorization:
-#      Returns us to the main /choose screen after inserting
-#      the calendar_service object in the session state.  May
-#      redirect to OAuth server first, and may take multiple
-#      trips through the oauth2 callback function.
-#
-#  Protocol for use ON EACH REQUEST: 
-#     First, check for valid credentials
-#     If we don't have valid credentials
-#         Get credentials (jump to the oauth2 protocol)
-#         (redirects back to /choose, this time with credentials)
-#     If we do have valid credentials
-#         Get the service object
-#
-#  The final result of successful authorization is a 'service'
-#  object.  We use a 'service' object to actually retrieve data
-#  from the Google services. Service objects are NOT serializable ---
-#  we can't stash one in a cookie.  Instead, on each request we
-#  get a fresh serivce object from our credentials, which are
-#  serializable. 
-#
-#  Note that after authorization we always redirect to /choose;
-#  If this is unsatisfactory, we'll need a session variable to use
-#  as a 'continuation' or 'return address' to use instead. 
-#
-####
+###
+# google credential and service object functions
+###
 
+#checks for valid credentials
 def valid_credentials():
-    """
-    Returns OAuth2 credentials if we have valid
-    credentials in the session.  This is a 'truthy' value.
-    Return None if we don't have credentials, or if they
-    have expired or are otherwise invalid.  This is a 'falsy' value. 
-    """
+   
+    # will eventually redirect to oauth2callback
     if 'credentials' not in flask.session:
       return None
-
+    
+    # will convert
     credentials = client.OAuth2Credentials.from_json(
         flask.session['credentials'])
-
+    
     if (credentials.invalid or
         credentials.access_token_expired):
       return None
     return credentials
 
-
+# retrieve the service object for google calendar
 def get_gcal_service(credentials):
-  """
-  We need a Google calendar 'service' object to obtain
-  list of calendars, busy times, etc.  This requires
-  authorization. If authorization is already in effect,
-  we'll just return with the authorization. Otherwise,
-  control flow will be interrupted by authorization, and we'll
-  end up redirected back to /choose *without a service object*.
-  Then the second call will succeed without additional authorization.
-  """
   app.logger.debug("Entering get_gcal_service")
   http_auth = credentials.authorize(httplib2.Http())
   service = discovery.build('calendar', 'v3', http=http_auth)
   app.logger.debug("Returning service")
   return service
 
+# oauth2callback directs to google for valid credentials
 @app.route('/oauth2callback')
 def oauth2callback():
   """
@@ -227,14 +172,7 @@ def oauth2callback():
     return flask.redirect(flask.url_for('choose'))
 
 #####
-#
-#  Option setting:  Buttons or forms that add some
-#     information into session state.  Don't do the
-#     computation here; use of the information might
-#     depend on what other information we have.
-#   Setting an option sends us back to the main display
-#      page, where we may put the new information to use. 
-#
+# routes to affect things on page
 #####
 
 @app.route('/setrange', methods=['POST'])
@@ -257,18 +195,13 @@ def setrange():
     return flask.redirect(flask.url_for("choose"))
 
 ####
-#
-#   Initialize session variables 
-#
+#  Initialize session variables 
 ####
 
+# must be run in app context. can't call from main
 def init_session_values():
-    """
-    Start with some reasonable defaults for date and time ranges.
-    Note this must be run in app context ... can't call from main. 
-    """
     # Default date span = tomorrow to 1 week from now
-    now = arrow.now('local')     # We really should be using tz from browser
+    now = arrow.now('local')
     tomorrow = now.replace(days=+1)
     nextweek = now.replace(days=+7)
     flask.session["begin_date"] = tomorrow.floor('day').isoformat()
