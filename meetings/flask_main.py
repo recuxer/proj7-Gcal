@@ -19,9 +19,6 @@ import httplib2
 # Google API for services 
 from apiclient import discovery
 
-#module file for minor calendar logic
-import cal
-
 ###
 # Globals
 ###
@@ -74,7 +71,7 @@ def choose():
         calendarids = request.form.getlist('calendar')
 
         #grab summaries for each calendar id to output as header of events per calendar(in separate module file)     
-        calsummaries = cal.getSummaries(calendarids, flask.g.calendars)
+        calsummaries = getSummaries(calendarids, flask.g.calendars)
 
         #create events
         events = getEvents(calendarids, calsummaries, credentials, gcal_service)
@@ -107,6 +104,15 @@ def getEvents(calid, calsum, credentials, service):
                 eventlist.append(eventinfo)
         eventsbycalendar[calsum[count]] = eventlist
     return eventsbycalendar
+
+#get summaries of calendar from object dict
+def getSummaries(calendarid, calendardict):
+    calsummaries = []
+    for ids in calendarid:
+        for calendars in calendardict:
+            if ids in calendars['id']:
+                calsummaries.append(calendars['summary'])
+    return calsummaries
 
 ###
 # google credential and service object functions
