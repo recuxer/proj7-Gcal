@@ -19,6 +19,9 @@ import httplib2
 # Google API for services 
 from apiclient import discovery
 
+#module file for minor calendar logic
+import cal
+
 ###
 # Globals
 ###
@@ -68,20 +71,20 @@ def choose():
 
     #request is from submission of selected calendars
     if request.method == 'POST':
-        calsummary = []
         calendarids = request.form.getlist('calendar')
-            
-        for ids in calendarids:
-            for calendars in flask.g.calendars:
-                if ids in calendars['id']:
-                    calsummary.append(calendars['summary'])
-        events = getEvents(calendarids, calsummary, credentials, gcal_service)
+
+        #grab summaries for each calendar id to output as header of events per calendar(in separate module file)     
+        calsummaries = cal.getSummaries(calendarids, flask.g.calendars)
+
+        #create events
+        events = getEvents(calendarids, calsummaries, credentials, gcal_service)
         flask.g.events = events
-    
+
     return render_template('index.html')
 
 ###
-# get events
+# ADDED FUNCTION:
+# get events, to get events from calendars chosen in template
 ###
 def getEvents(calid, calsum, credentials, service):
     eventsbycalendar = {}
@@ -96,7 +99,11 @@ def getEvents(calid, calsum, credentials, service):
             if 'transparency' not in event:
                 starttime = event['start']
                 endtime = event['end']
-                eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
+                #to determine whether is all day event or if times specified
+                if 'dateTime' in starttime:
+                    eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
+                else:
+                    eventinfo = starttime['date'], endtime['date'], event['summary']
                 eventlist.append(eventinfo)
         eventsbycalendar[calsum[count]] = eventlist
     return eventsbycalendar
