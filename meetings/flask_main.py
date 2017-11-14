@@ -107,9 +107,13 @@ def getEvents(calid, calsum, credentials, service):
 
 #get summaries of calendar from object dict
 def getSummaries(calendarid, calendardict):
+    print(calendarid)
+    print(calendardict)
     calsummaries = []
     for ids in calendarid:
+        #print(ids)
         for calendars in calendardict:
+            #print(calendars)
             if ids in calendars['id']:
                 calsummaries.append(calendars['summary'])
     return calsummaries
