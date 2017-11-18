@@ -96,11 +96,19 @@ def getEvents(calid, calsum, credentials, service):
             if 'transparency' not in event:
                 starttime = event['start']
                 endtime = event['end']
+                eventinfo = []
                 #to determine whether is all day event or if times specified
                 if 'dateTime' in starttime:
-                    eventinfo = starttime['dateTime'], endtime['dateTime'], event['summary']
+                    eventinfo.append(starttime['dateTime'])
+                    eventinfo.append(endtime['dateTime'])
                 else:
-                    eventinfo = starttime['date'], endtime['date'], event['summary']
+                    eventinfo.append(starttime['date'])
+                    eventinfo.append(endtime['date'])
+                # to check if summary
+                if 'summary' in event:
+                    eventinfo.append(event['summary'])
+                else:
+                    eventinfo.append('no summary')
                 eventlist.append(eventinfo)
         eventsbycalendar[calsum[count]] = eventlist
     return eventsbycalendar
@@ -113,7 +121,6 @@ def getSummaries(calendarid, calendardict):
             if ids in calendars['id']:
                 calsummaries.append(calendars['summary'])
     return calsummaries
-
 ###
 # google credential and service object functions
 ###
